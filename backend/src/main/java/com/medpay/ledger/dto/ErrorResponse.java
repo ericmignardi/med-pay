@@ -4,13 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
-/**
- * The single shape of every non-2xx response in the system (§5.6, FR-026).
- *
- * <p>{@code fieldErrors} and {@code details} serialize as {@code null} when
- * absent rather than being omitted, so a client can destructure the envelope
- * without presence checks.
- */
 public record ErrorResponse(
         Instant timestamp,
         int status,

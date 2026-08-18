@@ -14,22 +14,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Layer 1 of the three enforcement layers (§2.3): coarse path matching only.
- *
- * <p>No role rule appears here. Path-to-role mapping lives on the handler as
- * {@code @PreAuthorize} so it cannot drift away from the controller it governs.
- */
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    /**
-     * Strength 12, matching the cost factor baked into the seeded hashes in
-     * {@code V3__seed_users_and_roles.sql}. Lowering it would silently invalidate
-     * nothing — BCrypt reads the cost from the hash — but new hashes would be
-     * weaker than the ones already stored.
-     */
     private static final int BCRYPT_STRENGTH = 12;
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -47,10 +35,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                // Safe here, and only here: the credential lives in sessionStorage and
-                // is attached by an explicit interceptor, so a cross-site request
-                // carries no credential at all (ADR-008). With cookie auth this line
-                // would be a vulnerability.
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {
                 })

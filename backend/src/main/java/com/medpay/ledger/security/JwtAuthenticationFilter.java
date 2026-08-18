@@ -13,16 +13,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/**
- * Populates the security context from a bearer token (FR-003).
- *
- * <p>The filter never writes a response body. A malformed, expired, or badly
- * signed token simply leaves the context empty and the chain proceeds; the
- * request then fails at {@code anyRequest().authenticated()} and
- * {@link RestAuthenticationEntryPoint} renders the {@code 401}. Throwing from
- * here instead would produce a {@code 500} for an expired token, because an
- * exception raised in a filter escapes the {@code exceptionHandling} chain.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

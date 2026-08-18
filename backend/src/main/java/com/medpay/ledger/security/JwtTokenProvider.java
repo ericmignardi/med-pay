@@ -23,17 +23,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Issues and parses the HS256 access token (FR-002).
- *
- * <p>The key-length assertion runs in the constructor, not at first issuance: a
- * secret shorter than 256 bits must fail the application boot rather than the
- * first login attempt in production.
- */
 @Component
 public class JwtTokenProvider {
 
-    /** HS256 requires a key at least as long as its output — 256 bits. */
     private static final int MINIMUM_KEY_BYTES = 32;
 
     private static final String CLAIM_USER_ID = "uid";
@@ -64,10 +56,6 @@ public class JwtTokenProvider {
         this.timeToLive = Duration.ofSeconds(ttlSeconds);
     }
 
-    /**
-     * Base64 is the documented encoding for the secret, but a raw high-entropy
-     * passphrase is accepted too — both paths then meet the same length assertion.
-     */
     private static byte[] decode(String secret) {
         try {
             return Decoders.BASE64.decode(secret);
@@ -83,7 +71,6 @@ public class JwtTokenProvider {
         List<String> roleNames = user.getRoles().stream().map(Enum::name).sorted().toList();
 
         String token = Jwts.builder()
-                // The subject is the immutable UUID, never the mutable email (FR-002).
                 .subject(user.getUserUuid().toString())
                 .claim(CLAIM_USER_ID, user.getId())
                 .claim(CLAIM_EMAIL, user.getEmail())
@@ -98,12 +85,6 @@ public class JwtTokenProvider {
         return new IssuedToken(token, expiresAt);
     }
 
-    /**
-     * Returns the principal for a structurally valid, correctly signed, unexpired
-     * token, and {@link Optional#empty()} for anything else. The failure modes are
-     * deliberately not distinguished to the caller — every one of them is a plain
-     * {@code 401} (FR-003).
-     */
     public Optional<AuthenticatedUser> parse(String token) {
         try {
             Claims claims = Jwts.parser()
@@ -137,8 +118,6 @@ public class JwtTokenProvider {
         Set<Role> roles = EnumSet.noneOf(Role.class);
         if (raw instanceof List<?> values) {
             for (Object value : values) {
-                // An unrecognised role name is dropped rather than fatal: a token
-                // issued before a role was retired must still authenticate.
                 try {
                     roles.add(Role.valueOf(String.valueOf(value)));
                 } catch (IllegalArgumentException unknownRole) {
@@ -153,7 +132,6 @@ public class JwtTokenProvider {
         return timeToLive;
     }
 
-    /** A signed token and the instant it stops being valid. */
     public record IssuedToken(String token, Instant expiresAt) {
     }
 }

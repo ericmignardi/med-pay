@@ -25,7 +25,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** FR-001 – FR-004, NFR-004. */
 class AuthControllerTest extends AbstractIntegrationTest {
 
     private static final String DEMO_PASSWORD = "Demo!Pass123";
@@ -89,8 +88,6 @@ class AuthControllerTest extends AbstractIntegrationTest {
         JsonNode first = objectMapper.readTree(unknownEmail.getResponse().getContentAsString());
         JsonNode second = objectMapper.readTree(wrongPassword.getResponse().getContentAsString());
 
-        // Everything but the timestamp must match: a differing message, code, or
-        // detail set would disclose whether the account exists.
         assertThat(second.get("code")).isEqualTo(first.get("code"));
         assertThat(second.get("message")).isEqualTo(first.get("message"));
         assertThat(second.get("status")).isEqualTo(first.get("status"));
@@ -183,7 +180,6 @@ class AuthControllerTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
     }
 
-    /** Signed with the real key so only the {@code exp} claim can be the cause of rejection. */
     private String expiredToken() {
         Instant issued = Instant.now().minusSeconds(7200);
         return Jwts.builder()

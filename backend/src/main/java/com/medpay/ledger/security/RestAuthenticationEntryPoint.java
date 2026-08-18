@@ -13,13 +13,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
-/**
- * Renders the {@code 401} envelope for an unauthenticated request (§5.6).
- *
- * <p>This is where an expired or forged token lands: {@link
- * JwtAuthenticationFilter} leaves the context empty rather than throwing, so the
- * failure arrives here as a plain authentication miss and never as a {@code 500}.
- */
 @Component
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 

@@ -7,12 +7,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Injects a fully-formed {@link com.medpay.ledger.security.AuthenticatedUser},
- * including the {@code userUuid} the self-approval check compares against
- * (§6.1). {@code @WithMockUser} cannot carry that identity, and a test using it
- * would pass the separation-of-duties case for the wrong reason.
- */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @WithSecurityContext(factory = WithMockCustomUserSecurityContextFactory.class)

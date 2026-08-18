@@ -1,12 +1,5 @@
 package com.medpay.ledger.exception;
 
-/**
- * Every {@code code} value the API can emit (§5.6).
- *
- * <p>Held as constants rather than an enum because the value crosses the wire as
- * a plain string and is asserted literally by the TypeScript client and the
- * Playwright suite; an enum would invite {@code name()} drift.
- */
 public final class ErrorCode {
 
     public static final String VALIDATION_FAILED = "VALIDATION_FAILED";
