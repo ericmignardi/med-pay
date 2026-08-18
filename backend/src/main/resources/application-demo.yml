@@ -1,15 +1,3 @@
-# =============================================================================
-# demo — dev plus seeded sample data.
-#
-# The profile group in application.yml makes `dev` active alongside this one, so
-# everything in application-dev.yml applies; only the seeding switch is new.
-#
-# This is the profile docker-compose.yml defaults to, because the Playwright
-# suite in Phase 9 needs claims to act on.
-# =============================================================================
-
 app:
   demo:
-    # Read by DemoDataSeeder (Phase 1). Seeding is idempotent and must remain so
-    # — compose restarts the backend against a persistent volume.
     seed-enabled: true

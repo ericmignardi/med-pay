@@ -29,10 +29,6 @@
 	<properties>
 		<java.version>21</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
-		<!-- PLAN.md Phase 7 owns the coverage gate. Until the code it measures
-		     exists, an 80%/70% threshold fails `mvn verify` on an empty tree and
-		     would block CI for every phase in between. The report is still
-		     generated on every run, so the ratio is visible the whole way. -->
 		<jacoco.haltOnFailure>false</jacoco.haltOnFailure>
 	</properties>
 	<dependencies>
@@ -75,7 +71,6 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
-		<!-- JWT — FR-002. api at compile scope, impl and jackson at runtime -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
@@ -93,9 +88,6 @@
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
 		</dependency>
-		<!-- @Retryable on optimistic lock failure — FR-023.
-		     Boot 4 / Spring Framework 7 ship retry natively via
-		     org.springframework.resilience, so no spring-retry dependency. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator-test</artifactId>
@@ -197,9 +189,6 @@
             <phase>verify</phase>
             <goals><goal>check</goal></goals>
             <configuration>
-                <!-- Gate is measured from Phase 0 but only fails the build from
-                     Phase 7, when there is production code for it to measure.
-                     Flip the property below (not this line) to true there. -->
                 <haltOnFailure>${jacoco.haltOnFailure}</haltOnFailure>
                 <rules>
                     <rule>

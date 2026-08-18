@@ -25,12 +25,6 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
-      // -----------------------------------------------------------------------
-      // PLAN.md Phase 0 — ban `any`.
-      //
-      // The API types in PRD §5 are the contract; `any` at the boundary means a
-      // response shape change compiles clean and fails at runtime instead.
-      // -----------------------------------------------------------------------
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unsafe-assignment': 'error',
       '@typescript-eslint/no-unsafe-member-access': 'error',
@@ -38,18 +32,6 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
 
-      // -----------------------------------------------------------------------
-      // PLAN.md Phase 0 — ban BigDecimal-unsafe number parsing.
-      //
-      // Money crosses the wire as a decimal *string* precisely so it never
-      // touches an IEEE-754 double. `Number("0.1") + Number("0.2")` is
-      // 0.30000000000000004, and a claim that fails the server's to-the-cent
-      // line-sum check for that reason is a bug the client created.
-      //
-      // Parse with decimal.js (`new Decimal(...)`), render with
-      // Intl.NumberFormat over the Decimal's string form. See
-      // src/lib/formatMoney.ts (Phase 8).
-      // -----------------------------------------------------------------------
       'no-restricted-globals': [
         'error',
         {
@@ -73,13 +55,11 @@ export default tseslint.config(
         },
         {
           selector: "UnaryExpression[operator='+'][argument.type!='Literal']",
-          message: 'Unary + coerces to a float — use decimal.js for money, Number.parseInt elsewhere with an explicit radix.',
+          message: 'Unary + coerces to a float — use decimal.js for money.',
         },
       ],
     },
   },
-  // The lint rules above are typed-linting rules; the config files themselves
-  // are not in either tsconfig's `include`, so they parse without type info.
   {
     files: ['*.config.js', 'eslint.config.js'],
     extends: [tseslint.configs.disableTypeChecked],

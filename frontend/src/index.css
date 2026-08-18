@@ -1,6 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-status-paid: #15803d;
+  --color-status-flagged: #b45309;
+  --color-status-denied: #b91c1c;
+  --color-status-reversed: #6d28d9;
+
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
 
 @layer base {
   :root {
@@ -11,8 +18,6 @@
     @apply bg-slate-50 text-slate-900 antialiased;
   }
 
-  /* Visible focus on every interactive element — NFR-014. Phase 8 relies on
-     this being global rather than reapplied per component. */
   :focus-visible {
     @apply outline-none ring-2 ring-offset-2 ring-sky-600;
   }

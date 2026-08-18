@@ -9,14 +9,6 @@ interface HealthResponse {
 
 type Probe = { state: 'loading' } | { state: 'up'; status: string } | { state: 'down' };
 
-/**
- * Phase 0 placeholder route.
- *
- * It calls /actuator/health through the same relative path the real API client
- * will use, so rendering it green proves the whole chain the exit criterion
- * cares about: Nginx serving the SPA, Nginx proxying to the backend, and the
- * backend reaching Postgres. Phase 8 replaces this with the ten real routes.
- */
 function HealthPlaceholder() {
   const [probe, setProbe] = useState<Probe>({ state: 'loading' });
 
@@ -82,7 +74,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HealthPlaceholder />} />
-      {/* Phase 8 replaces this catch-all with the real route table and /403. */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
