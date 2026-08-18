@@ -1,5 +1,6 @@
 package com.medpay.ledger.model;
 
+import com.medpay.ledger.util.MoneyMath;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -7,7 +8,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,6 +15,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 
 @Entity
@@ -22,7 +23,6 @@ import java.time.Instant;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ProviderAccount {
 
     @Id
@@ -48,4 +48,30 @@ public class ProviderAccount {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
+
+    public void accrue(BigDecimal amount) {
+        assertPositive(amount);
+        payableBalance = scaled(payableBalance.add(amount));
+    }
+
+    public void recoup(BigDecimal amount) {
+        assertPositive(amount);
+        BigDecimal reduced = scaled(payableBalance.subtract(amount));
+        if (reduced.signum() < 0) {
+            throw new IllegalStateException(
+                    "Recoupment of " + amount + " would overdraw provider " + providerNpi
+                            + " whose payable balance is " + payableBalance);
+        }
+        payableBalance = reduced;
+    }
+
+    private static void assertPositive(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Balance movements are positive amounts, got " + amount);
+        }
+    }
+
+    private static BigDecimal scaled(BigDecimal value) {
+        return value.setScale(MoneyMath.STORAGE_SCALE, RoundingMode.HALF_UP);
+    }
 }

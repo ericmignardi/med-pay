@@ -16,13 +16,17 @@ import java.util.UUID;
 public interface LedgerJournalRepository
         extends Repository<LedgerJournal, Long>, JpaSpecificationExecutor<LedgerJournal> {
 
-    void save(LedgerJournal journal);
+    LedgerJournal save(LedgerJournal journal);
+
+    <S extends LedgerJournal> List<S> saveAll(Iterable<S> journals);
 
     Optional<LedgerJournal> findById(Long id);
 
     List<LedgerJournal> findByJournalGroupIdOrderByIdAsc(UUID journalGroupId);
 
     List<LedgerJournal> findByClaimIdOrderByPostedAtAsc(Long claimId);
+
+    List<LedgerJournal> findByClaimClaimUuidOrderByPostedAtAscIdAsc(UUID claimUuid);
 
     Page<LedgerJournal> findAllByOrderByPostedAtDesc(Pageable pageable);
 
@@ -46,4 +50,13 @@ public interface LedgerJournalRepository
               AND lj.accountType = com.medpay.ledger.model.LedgerAccountType.PROVIDER_PAYABLE
             """)
     BigDecimal sumProviderPayableBalance(@Param("providerAccountId") Long providerAccountId);
+
+    @Query("""
+            SELECT lj.journalGroupId
+            FROM LedgerJournal lj
+            GROUP BY lj.journalGroupId
+            HAVING SUM(CASE WHEN lj.direction = com.medpay.ledger.model.LedgerDirection.DEBIT
+                            THEN lj.amount ELSE -lj.amount END) <> 0
+            """)
+    List<UUID> findUnbalancedJournalGroups();
 }

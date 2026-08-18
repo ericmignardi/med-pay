@@ -23,13 +23,13 @@ class SchemaValidationTest extends AbstractIntegrationTest {
     @Autowired private ClaimRepository claimRepository;
 
     @Test
-    @DisplayName("Flyway applied exactly V1 through V6, all successful")
+    @DisplayName("Flyway applied exactly V1 through V7, all successful")
     void migrationChainApplied() {
         var versions = jdbcTemplate.queryForList(
                 "SELECT version FROM flyway_schema_history WHERE success = TRUE AND version IS NOT NULL "
                         + "ORDER BY installed_rank", String.class);
 
-        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6");
+        assertThat(versions).containsExactly("1", "2", "3", "4", "5", "6", "7");
     }
 
     @Test

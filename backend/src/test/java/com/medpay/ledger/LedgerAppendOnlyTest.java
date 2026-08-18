@@ -95,16 +95,22 @@ class LedgerAppendOnlyTest extends AbstractIntegrationTest {
 
         UUID freshGroup = UUID.randomUUID();
 
+        Long providerId = jdbcTemplate.queryForObject(
+                "SELECT provider_account_id FROM ledger_journals "
+                        + "WHERE journal_group_id = ? AND provider_account_id IS NOT NULL LIMIT 1",
+                Long.class, journalGroupId);
+
         executeAsAppRole("SELECT count(*) FROM ledger_journals");
         executeAsAppRole("""
                 INSERT INTO ledger_journals (journal_group_id, claim_id, provider_account_id,
                                              account_type, direction, amount, memo)
-                VALUES ('%s', %d, NULL, 'PAYER_CLAIMS_EXPENSE', 'DEBIT', 25.0000, 'append check')
-                """.formatted(freshGroup, claimId));
+                VALUES ('%s', %d, NULL,  'PAYER_CLAIMS_EXPENSE', 'DEBIT',  25.0000, 'append check'),
+                       ('%s', %d, %d,    'PROVIDER_PAYABLE',     'CREDIT', 25.0000, 'append check')
+                """.formatted(freshGroup, claimId, freshGroup, claimId, providerId));
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM ledger_journals WHERE journal_group_id = ?",
-                Integer.class, freshGroup)).isEqualTo(1);
+                Integer.class, freshGroup)).isEqualTo(2);
     }
 
     @Test
