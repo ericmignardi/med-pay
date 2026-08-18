@@ -69,3 +69,6 @@ docker-compose.rendered.yml
 /frontend/playwright-report/
 /frontend/blob-report/
 /frontend/.playwright/
+
+# TypeScript incremental build state
+*.tsbuildinfo

@@ -1,1 +1,0 @@
-{"root":["./e2e/auth.spec.ts","./e2e/cross-role-flow.spec.ts","./e2e/expiry.spec.ts","./e2e/persistence.spec.ts","./e2e/route-protection.spec.ts","./e2e/support/accounts.ts","./playwright.config.ts"],"version":"5.6.3"}
