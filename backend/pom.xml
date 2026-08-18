@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<jjwt.version>0.12.6</jjwt.version>
+		<jjwt.version>0.13.0</jjwt.version>
 		<!-- Phase 7: the gate enforces. It was non-blocking through Phases 0-6 because an
              enforcing rule fails `mvn verify` on a tree with no production code yet. -->
 		<jacoco.haltOnFailure>true</jacoco.haltOnFailure>
