@@ -8,6 +8,7 @@ import com.medpay.ledger.dto.JournalLineResponse;
 import com.medpay.ledger.model.Claim;
 import com.medpay.ledger.model.ClaimLine;
 import com.medpay.ledger.model.LedgerJournal;
+import com.medpay.ledger.util.MoneyMath;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -69,7 +70,10 @@ public class ClaimMapper {
                 journal.getClaim().getProvider().getProviderNpi(),
                 journal.getAccountType(),
                 journal.getDirection(),
-                journal.getAmount(),
+                // Storage is NUMERIC(19,4); the contract in PRD 5.5 is a two-decimal money
+                // string, the same scale every other amount crosses the wire at. Ledger
+                // amounts derive from already-normalized allowed amounts, so this is lossless.
+                MoneyMath.normalize(journal.getAmount()),
                 journal.getMemo(),
                 journal.getReversesJournalGroupId(),
                 journal.getPostedAt());

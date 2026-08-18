@@ -9,7 +9,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {
         "app.jwt.secret=dGVzdC1vbmx5LXNlY3JldC1uZXZlci11c2VkLW91dHNpZGUtdGhlLXRlc3Qtc3VpdGU=",
-        "spring.jpa.hibernate.ddl-auto=validate"
+        "spring.jpa.hibernate.ddl-auto=validate",
+        // The scheduled dispatcher would drain the queue underneath OutboxDispatcherIT and
+        // make its assertions race. Tests drive dispatch() explicitly instead.
+        "app.outbox.dispatch-interval-ms=3600000",
+        "app.outbox.dispatch-initial-delay-ms=3600000"
 })
 @ActiveProfiles("dev")
 @AutoConfigureMockMvc

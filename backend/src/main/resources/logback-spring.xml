@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- FR-030. Every appender below formats the message with %maskedMsg rather
+         than %msg, so member_reference, diagnosis_code and service_code cannot
+         reach an appender in cleartext by any path - including the error path.
+         %maskedEx covers the throwable: registering an exception converter also
+         suppresses Logback's automatic append of the unmasked stack trace. -->
+    <conversionRule conversionWord="maskedMsg"
+                    class="com.medpay.ledger.util.PhiMaskingConverter"/>
+    <conversionRule conversionWord="maskedEx"
+                    class="com.medpay.ledger.util.PhiMaskingThrowableConverter"/>
+
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%X{correlationId:-no-correlation}] %logger{36} - %maskedMsg%n%maskedEx"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <logger name="com.medpay.ledger" level="INFO"/>
+
+</configuration>

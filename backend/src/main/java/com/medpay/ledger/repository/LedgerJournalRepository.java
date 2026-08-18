@@ -3,6 +3,8 @@ package com.medpay.ledger.repository;
 import com.medpay.ledger.model.LedgerJournal;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -29,6 +31,14 @@ public interface LedgerJournalRepository
     List<LedgerJournal> findByClaimClaimUuidOrderByPostedAtAscIdAsc(UUID claimUuid);
 
     Page<LedgerJournal> findAllByOrderByPostedAtDesc(Pageable pageable);
+
+    /**
+     * Overridden solely to attach the entity graph. {@code GET /audit/journals} maps every row
+     * through {@code claim.provider}, so without the fetch a page of 20 costs 41 queries.
+     */
+    @Override
+    @EntityGraph(attributePaths = {"claim", "claim.provider"})
+    Page<LedgerJournal> findAll(Specification<LedgerJournal> spec, Pageable pageable);
 
     long count();
 

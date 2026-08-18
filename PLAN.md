@@ -199,6 +199,27 @@ Closes the backend. The API contract is frozen at this phase's exit.
 
 **Exit criterion.** Coverage gate passes at 80% line / 70% branch. `ConcurrencyIT` proves a double-submit yields one claim and one journal group, and that two concurrent approvals yield one `PAID` and one `409`. Outbox rows drain after a simulated dispatcher restart. **API contract frozen.**
 
+**Done.** 178 tests green; gate enforcing at 93.7% line / 72.4% branch. Three defects
+surfaced and were fixed rather than tested around:
+
+1. `` sat on `AdjudicationService.adjudicate`, a `MANDATORY`-propagation method
+   *inside* the caller transaction. Once a flush fails the transaction is doomed, so the
+   retry could never succeed. It now lives at the transaction boundary in
+   `service/ClaimIntake.java`, a non-transactional delegate the controller calls. Under
+   six-way contention on one provider row this moved the accepted rate from 1/6 to 4/6;
+   the remainder get `409 CONCURRENT_MODIFICATION`, which is the documented outcome.
+2. `ClaimSubmissionService` caught `DataIntegrityViolationException` and kept querying in
+   the same persistence context, producing `500` (`AssertionFailure: null identifier`) for
+   the loser of a concurrent double-submit. The collision now propagates and the retry
+   resolves it in a fresh transaction.
+3. `JournalSpecifications.compose` passed nulls to `Specification.allOf`, which rejects
+   them — every unfiltered `/audit/journals` call was a `500`.
+
+Also closed: stack traces bypassed `%maskedMsg` entirely (FR-030 error path) — see
+`PhiMaskingThrowableConverter`; the JaCoCo excludes used `**/dto/**` against flat packages
+and matched nothing; there was no `report` goal at all; and journal amounts serialized at
+the NUMERIC(19,4) storage scale (`"125.0000"`) instead of the two-decimal contract.
+
 **Covers:** FR-021, FR-022, FR-023, FR-024, NFR-003, NFR-008, NFR-009, NFR-010, NFR-013.
 
 ---
@@ -303,3 +324,67 @@ Phase 0 ─→ Phase 1 ─→ Phase 2 ─→ Phase 3 ─→ Phase 4 ─→ Phase
 Phases 0–7 are strictly sequential; each depends on the previous phase's artifacts. Phase 8 can begin in parallel with Phase 7 **only** for `types/api.ts` and static layout, since those depend on the contract in PRD §5 rather than on running endpoints — but no page should be wired to a live call before Phase 7 exits.
 
 The two phases most likely to overrun are 4 and 6: Phase 4 because the append-only grant interacts with Flyway's own role, and Phase 6 because the self-approval test requires `@WithMockCustomUser` to carry a real `userUuid`, which is easy to stub incorrectly in a way that makes the test pass without proving anything.
+
+---
+
+## Phase 10 — DEFERRED (no Azure subscription yet)
+
+**Status as of 2026-08-18.** Phase 10 is split. The half that needs no Azure
+account is still in scope and should be built with Phases 8–9. The half that
+provisions cloud resources is parked until a free-tier subscription exists.
+
+### 10a — Buildable now, no account required
+
+| Task | Artifact |
+|---|---|
+| `deploy.yml` jobs 1–2: backend `mvn verify`, frontend `tsc --noEmit` + lint + build | `.github/workflows/deploy.yml` |
+| `gitleaks` scan step | same |
+| Dependabot on `maven` and `npm`, weekly | `.github/dependabot.yml` |
+| Build/push and deploy jobs written but gated on `if: ${{ vars.AZURE_ENABLED == 'true' }}` | `deploy.yml` |
+
+Gating on a repository variable means the workflow is committed, reviewed, and
+green on every push now, and turning on deployment later is a one-click change
+rather than a new authoring pass.
+
+### 10b — Blocked on the subscription
+
+Do these in order once the account is ready. Each line is the actual step, not a
+summary of one.
+
+1. **Create the resource group** in Canada Central (`medpay-rg`). Every resource
+   below goes in it so teardown is a single delete.
+2. **Provision ACR** (Basic SKU), **App Service plan** (B1 — the free F1 tier
+   cannot pull from ACR and has no always-on, which breaks the outbox
+   dispatcher's `@Scheduled` loop), **App Service** (Linux container),
+   **PostgreSQL Flexible Server** (Burstable B1ms, `require_secure_transport`
+   ON), and **Key Vault**.
+3. **Enable the App Service's system-assigned managed identity.** Grant it
+   `AcrPull` on the registry and a Key Vault access policy limited to `get` on
+   secrets. No stored registry password, no connection string in app settings.
+4. **Store two secrets in Key Vault** — `MEDPAY-JWT-SECRET` (32+ bytes, or
+   `JwtTokenProvider` fails fast at boot by design) and
+   `SPRING-DATASOURCE-PASSWORD`. Reference them from App Service settings as
+   `@Microsoft.KeyVault(SecretUri=...)`, never as literals.
+5. **Set `SPRING_DATASOURCE_URL` with `sslmode=require`.** NFR-003 has no
+   automated test and is a declared gap in PRD §9.1 — this is the manual
+   verification for it. Confirm by checking the connection is refused without it.
+6. **Configure the GitHub OIDC federated credential** on an Entra app
+   registration scoped to `repo:<owner>/medpay:ref:refs/heads/main`, then set
+   `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` as repository
+   variables. The workflow needs `permissions: id-token: write`. No client
+   secret is ever created.
+7. **Flip `AZURE_ENABLED` to `true`** to activate the gated jobs from 10a.
+8. **Set a budget alert** in Cost Management at the monthly threshold before the
+   first deploy, not after.
+
+**Verification once unblocked.** Push to `main`; the workflow must build, test,
+push a commit-SHA-tagged image, deploy, and pass the bounded health poll with no
+manual step. Then: the public URL serves the SPA, the demo credentials
+authenticate, and the Phase 9 cross-role flow completes against the deployed
+environment. Finally, redeploy a prior commit SHA and confirm it rolls back
+cleanly — `latest` is pushed but never deployed by reference, so the rollback
+must resolve the SHA tag.
+
+**Check before declaring done.** No secret in a build argument, an image layer,
+or a workflow log. Key Vault references resolve at container start, not at build
+time — a secret that appears at build time has leaked into the image.

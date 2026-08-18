@@ -1,9 +1,63 @@
 spring:
+  datasource:
+    hikari:
+      # App Service B1 is a single small instance and PostgreSQL Flexible Server
+      # B1ms caps at ~50 connections. Ten leaves headroom for migrations and for
+      # a psql session during an incident.
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 900000
+      leak-detection-threshold: 30000
+      pool-name: medpay-hikari
+
   jpa:
     show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 30
+          # Both are required for batch_size to take effect on inserts; without
+          # them Hibernate silently falls back to statement-per-row.
+          batch_versioned_data: true
+        order_inserts: true
+        order_updates: true
+        default_batch_fetch_size: 30
+        query:
+          in_clause_parameter_padding: true
+        connection:
+          provider_disables_autocommit: true
+
+  flyway:
+    # Flyway runs as the migration owner; the runtime datasource is medpay_app,
+    # which has no DDL grant by design (V5, V6).
+    baseline-on-migrate: false
+
+app:
+  demo:
+    seed-enabled: false
+  outbox:
+    dispatch-interval-ms: 5000
 
 logging:
   level:
     root: INFO
     com.medpay.ledger: INFO
     org.hibernate: WARN
+    # A SQL log line can carry a bound PHI parameter. Off in prod, without
+    # exception - the masking converter covers messages, not driver-level tracing.
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true

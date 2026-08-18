@@ -17,7 +17,6 @@ import com.medpay.ledger.repository.ProviderAccountRepository;
 import com.medpay.ledger.repository.UserRepository;
 import com.medpay.ledger.security.AuthenticatedUser;
 import com.medpay.ledger.util.ClaimFingerprintCalculator;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -113,34 +112,17 @@ public class ClaimSubmissionService {
         claim.setAllowedAmount(pricing.allowedAmount());
         claim.setPatientResponsibility(pricing.patientResponsibility());
 
-        try {
-            claimRepository.saveAndFlush(claim);
-        } catch (DataIntegrityViolationException collision) {
-            return resolveCollision(principal, idempotencyKey, fingerprint, collision);
-        }
+        // A unique-constraint collision here means a concurrent submission won the race.
+        // It is deliberately not caught: a failed flush leaves the persistence context
+        // unusable, so recovery has to happen in a new transaction. ClaimIntake retries,
+        // and the retry resolves it through the lookups above (FR-023).
+        claimRepository.saveAndFlush(claim);
 
         outboxService.record(claim, OutboxEventType.CLAIM_SUBMITTED);
         adjudicationService.adjudicate(claim);
         claimRepository.saveAndFlush(claim);
 
         return outcomeFor(claim, false);
-    }
-
-    private SubmissionOutcome resolveCollision(AuthenticatedUser principal, UUID idempotencyKey,
-                                               String fingerprint,
-                                               DataIntegrityViolationException collision) {
-        Optional<Claim> byKey = claimRepository
-                .findBySubmittedByIdAndIdempotencyKey(principal.getUserId(), idempotencyKey);
-        if (byKey.isPresent()) {
-            return outcomeFor(byKey.get(), true);
-        }
-
-        Optional<Claim> byFingerprint = claimRepository.findActiveByFingerprint(fingerprint);
-        if (byFingerprint.isPresent()) {
-            throw new DuplicateClaimException(byFingerprint.get().getClaimUuid(), fingerprint);
-        }
-
-        throw collision;
     }
 
     private SubmissionOutcome outcomeFor(Claim claim, boolean replay) {

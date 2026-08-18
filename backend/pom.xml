@@ -29,7 +29,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
-		<jacoco.haltOnFailure>false</jacoco.haltOnFailure>
+		<!-- Phase 7: the gate enforces. It was non-blocking through Phases 0-6 because an
+             enforcing rule fails `mvn verify` on a tree with no production code yet. -->
+		<jacoco.haltOnFailure>true</jacoco.haltOnFailure>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -196,6 +198,11 @@
     <executions>
         <execution><goals><goal>prepare-agent</goal></goals></execution>
         <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals><goal>report</goal></goals>
+        </execution>
+        <execution>
             <id>check</id>
             <phase>verify</phase>
             <goals><goal>check</goal></goals>
@@ -211,8 +218,11 @@
                     </rule>
                 </rules>
                 <excludes>
-                    <exclude>com/medpay/ledger/**/dto/**</exclude>
-                    <exclude>com/medpay/ledger/**/config/**</exclude>
+                    <!-- Flat packages: com.medpay.ledger.dto, not com.medpay.ledger.x.dto. The
+                         **/dto/** form needs an intervening directory and silently matches
+                         nothing here. -->
+                    <exclude>com/medpay/ledger/dto/**</exclude>
+                    <exclude>com/medpay/ledger/config/**</exclude>
                     <exclude>com/medpay/ledger/MedPayLedgerApplication.class</exclude>
                 </excludes>
             </configuration>

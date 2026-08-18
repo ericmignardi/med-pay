@@ -8,6 +8,7 @@ import com.medpay.ledger.dto.ReversalRequest;
 import com.medpay.ledger.exception.MissingIdempotencyKeyException;
 import com.medpay.ledger.model.ClaimStatus;
 import com.medpay.ledger.security.AuthenticatedUser;
+import com.medpay.ledger.service.ClaimIntake;
 import com.medpay.ledger.service.ClaimQueryService;
 import com.medpay.ledger.service.ClaimSubmissionService;
 import com.medpay.ledger.service.ReversalService;
@@ -32,14 +33,14 @@ import java.util.UUID;
 @RequestMapping("/api/v1/claims")
 public class ClaimController {
 
-    private final ClaimSubmissionService submissionService;
+    private final ClaimIntake claimIntake;
     private final ClaimQueryService queryService;
     private final ReversalService reversalService;
 
-    public ClaimController(ClaimSubmissionService submissionService,
+    public ClaimController(ClaimIntake claimIntake,
                            ClaimQueryService queryService,
                            ReversalService reversalService) {
-        this.submissionService = submissionService;
+        this.claimIntake = claimIntake;
         this.queryService = queryService;
         this.reversalService = reversalService;
     }
@@ -53,7 +54,7 @@ public class ClaimController {
 
         UUID key = parseIdempotencyKey(idempotencyKey);
         ClaimSubmissionService.SubmissionOutcome outcome =
-                submissionService.submit(request, key, principal);
+                claimIntake.submit(request, key, principal);
 
         HttpStatus status = outcome.flagged() ? HttpStatus.ACCEPTED : HttpStatus.CREATED;
 

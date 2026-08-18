@@ -5,8 +5,6 @@ import com.medpay.ledger.model.ClaimEvent;
 import com.medpay.ledger.model.ClaimStatus;
 import com.medpay.ledger.model.OutboxEventType;
 import com.medpay.ledger.util.AdjudicationPolicy;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class AdjudicationService {
@@ -28,8 +25,12 @@ public class AdjudicationService {
         this.outboxService = outboxService;
     }
 
-    @Retryable(includes = OptimisticLockingFailureException.class,
-            maxRetries = 2, delay = 50, timeUnit = TimeUnit.MILLISECONDS)
+    /**
+     * MANDATORY by design: adjudication must never open its own transaction, or a ledger post
+     * could commit independently of the claim it belongs to. The optimistic-lock retry lives at
+     * the transaction boundary in {@link ClaimIntake} rather than here — retrying inside a
+     * transaction that has already failed its flush cannot succeed.
+     */
     @Transactional(propagation = Propagation.MANDATORY)
     public ClaimStatus adjudicate(Claim claim) {
         BigDecimal billed = Objects.requireNonNull(claim.getBilledAmount(), "billedAmount");
