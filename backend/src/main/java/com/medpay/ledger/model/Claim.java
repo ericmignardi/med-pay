@@ -1,5 +1,6 @@
 package com.medpay.ledger.model;
 
+import com.medpay.ledger.util.ClaimStateMachine;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -15,7 +16,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import lombok.AllArgsConstructor;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -34,7 +35,6 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Claim {
 
     @Id
@@ -70,7 +70,8 @@ public class Claim {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 24)
-    private ClaimStatus status;
+    @Setter(AccessLevel.NONE)
+    private ClaimStatus status = ClaimStatus.RECEIVED;
 
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "claim_fingerprint", nullable = false, length = 64, updatable = false)
@@ -106,6 +107,11 @@ public class Claim {
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineNumber ASC")
     private List<ClaimLine> lines = new ArrayList<>();
+
+    public ClaimStatus apply(ClaimEvent event) {
+        this.status = ClaimStateMachine.transition(this.status, event);
+        return this.status;
+    }
 
     public void addLine(ClaimLine line) {
         lines.add(line);

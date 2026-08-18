@@ -1,6 +1,7 @@
 package com.medpay.ledger.testsupport;
 
 import com.medpay.ledger.model.Claim;
+import com.medpay.ledger.model.ClaimEvent;
 import com.medpay.ledger.model.ClaimLine;
 import com.medpay.ledger.model.ClaimStatus;
 import com.medpay.ledger.model.ProviderAccount;
@@ -70,7 +71,7 @@ public class ClaimFixtures {
         claim.setAllowedAmount(allowedAmount);
         claim.setPatientResponsibility(
                 allowedAmount == null ? null : billedAmount.subtract(allowedAmount));
-        claim.setStatus(status);
+        driveTo(claim, status);
         claim.setClaimFingerprint(randomFingerprint());
         claim.setIdempotencyKey(UUID.randomUUID());
 
@@ -85,6 +86,32 @@ public class ClaimFixtures {
         claim.addLine(line);
 
         return claimRepository.saveAndFlush(claim);
+    }
+
+    public static void driveTo(Claim claim, ClaimStatus target) {
+        if (target == ClaimStatus.RECEIVED) {
+            return;
+        }
+        claim.apply(ClaimEvent.VALIDATE_OK);
+        if (target == ClaimStatus.VALIDATED) {
+            return;
+        }
+        if (target == ClaimStatus.FLAGGED_REVIEW || target == ClaimStatus.DENIED) {
+            claim.apply(ClaimEvent.ADJUDICATE_AT_OR_ABOVE_THRESHOLD);
+            if (target == ClaimStatus.DENIED) {
+                claim.apply(ClaimEvent.REVIEWER_DENY);
+            }
+            return;
+        }
+        claim.apply(ClaimEvent.ADJUDICATE_BELOW_THRESHOLD);
+        if (target == ClaimStatus.ADJUDICATED) {
+            return;
+        }
+        claim.apply(ClaimEvent.POST_LEDGER);
+        if (target == ClaimStatus.PAID) {
+            return;
+        }
+        claim.apply(ClaimEvent.REVERSE);
     }
 
     public static String randomFingerprint() {

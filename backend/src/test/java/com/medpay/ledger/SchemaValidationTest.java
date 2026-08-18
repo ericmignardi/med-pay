@@ -86,12 +86,31 @@ class SchemaValidationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("provider balances all start at zero")
-    void providerBalancesStartAtZero() {
-        assertThat(providerAccountRepository.findAll())
+    @DisplayName("V4 seeds every provider balance at zero")
+    void seededProviderBalancesAreZero() {
+        var seededBalances = jdbcTemplate.queryForList("""
+                SELECT pa.payable_balance
+                FROM provider_accounts pa
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM ledger_journals lj WHERE lj.provider_account_id = pa.id)
+                """, java.math.BigDecimal.class);
+
+        assertThat(seededBalances)
                 .isNotEmpty()
-                .allSatisfy(provider ->
-                        assertThat(provider.getPayableBalance()).isEqualByComparingTo("0.0000"));
+                .allSatisfy(balance -> assertThat(balance).isEqualByComparingTo("0.0000"));
+    }
+
+    @Test
+    @DisplayName("V7 rekeyed the reversal index so one reversal group's two rows can coexist")
+    void reversalIndexAdmitsAPairButNotASecondReversal() {
+        var indexDefinition = jdbcTemplate.queryForObject(
+                "SELECT indexdef FROM pg_indexes WHERE indexname = 'ux_ledger_journals_reverses'",
+                String.class);
+
+        assertThat(indexDefinition)
+                .contains("reverses_journal_group_id")
+                .contains("account_type")
+                .contains("UNIQUE");
     }
 
     @Test

@@ -1,0 +1,13 @@
+package com.medpay.ledger.model;
+
+public enum ClaimEvent {
+    SUBMIT,
+    VALIDATE_OK,
+    VALIDATE_FAIL,
+    ADJUDICATE_BELOW_THRESHOLD,
+    ADJUDICATE_AT_OR_ABOVE_THRESHOLD,
+    POST_LEDGER,
+    REVIEWER_APPROVE,
+    REVIEWER_DENY,
+    REVERSE
+}

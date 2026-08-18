@@ -20,12 +20,23 @@ public interface ClaimRepository extends JpaRepository<Claim, Long>, JpaSpecific
     @EntityGraph(attributePaths = "lines")
     Optional<Claim> findWithLinesByClaimUuid(UUID claimUuid);
 
+    @EntityGraph(attributePaths = "lines")
+    Optional<Claim> findWithLinesByClaimUuidAndSubmittedById(UUID claimUuid, Long userId);
+
+    @EntityGraph(attributePaths = "lines")
+    Optional<Claim> findWithLinesByClaimUuidAndStatus(UUID claimUuid, ClaimStatus status);
+
+    @EntityGraph(attributePaths = "lines")
     Page<Claim> findBySubmittedByIdOrderBySubmittedAtDesc(Long userId, Pageable pageable);
 
     @EntityGraph(attributePaths = "lines")
-    Page<Claim> findByStatusOrderBySubmittedAtAsc(ClaimStatus status, Pageable pageable);
+    Page<Claim> findBySubmittedByIdAndStatusOrderBySubmittedAtDesc(Long userId, ClaimStatus status,
+                                                                  Pageable pageable);
 
     Optional<Claim> findBySubmittedByIdAndIdempotencyKey(Long userId, UUID idempotencyKey);
+
+    @EntityGraph(attributePaths = "lines")
+    Page<Claim> findByStatusOrderBySubmittedAtAsc(ClaimStatus status, Pageable pageable);
 
     @Query("""
             SELECT c FROM Claim c

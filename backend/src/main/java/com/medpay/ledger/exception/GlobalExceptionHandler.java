@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -131,6 +132,28 @@ public class GlobalExceptionHandler {
                         path(request),
                         Map.of("existingClaimUuid", ex.getExistingClaimUuid().toString(),
                                 "fingerprint", ex.getFingerprint())));
+    }
+
+    @ExceptionHandler(IllegalStateTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalTransition(IllegalStateTransitionException ex,
+                                                                 HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, ErrorCode.ILLEGAL_STATE_TRANSITION, ex.getMessage(),
+                        path(request),
+                        Map.of("currentStatus", ex.getCurrentStatus().name(),
+                                "attemptedEvent", ex.getAttemptedEvent().name(),
+                                "allowedEvents", ex.getAllowedEvents().stream()
+                                        .map(Enum::name).sorted().toList())));
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleConcurrentModification(
+            OptimisticLockingFailureException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, ErrorCode.CONCURRENT_MODIFICATION,
+                        "The record was modified by another request; retry with fresh state",
+                        path(request),
+                        Map.of("entity", "Claim", "identifier", path(request))));
     }
 
     @ExceptionHandler(LineItemSumMismatchException.class)
