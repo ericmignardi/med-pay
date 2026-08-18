@@ -1,0 +1,27 @@
+# =============================================================================
+# dev — local development.
+#
+# Also active under `demo` via the profile group in application.yml.
+# =============================================================================
+
+spring:
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  cors:
+    # Consumed by the dev-profile-only CorsConfigurationSource (Phase 2, ADR-006).
+    # Needed only when the Vite dev server on :5173 calls the backend on :8080
+    # directly. Under compose and in Azure, Nginx proxies /api/v1 so every
+    # request is same-origin and no CORS bean is registered at all.
+    #
+    # A wildcard here violates NFR-006. Enumerate origins.
+    allowed-origins: ${MEDPAY_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+logging:
+  level:
+    com.medpay.ledger: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE

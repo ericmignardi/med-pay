@@ -1,0 +1,23 @@
+# =============================================================================
+# prod — Azure App Service.
+#
+# No CORS bean is registered under this profile at all (ADR-006): Nginx proxies
+# /api/v1, so every browser request is same-origin.
+#
+# Connection-pool sizing, batch/fetch tuning and the PHI-masking appender are
+# PLAN.md Phase 7 line items and land there, not here.
+# =============================================================================
+
+spring:
+  jpa:
+    # SQL logging would put claim amounts and member identifiers in the App
+    # Service log stream. Off, permanently (NFR-009).
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.medpay.ledger: INFO
+    # Hibernate parameter binding logs bound values — that is PHI-adjacent on a
+    # claims table. Never raise this above INFO in prod.
+    org.hibernate: WARN

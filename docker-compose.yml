@@ -1,0 +1,107 @@
+# =============================================================================
+# MedPay Ledger — local development stack
+#
+#   docker compose up --build --wait
+#
+# Backend and frontend are built from source here (no registry). The `demo`
+# profile seeds sample claims so the Playwright suite has data to act on.
+# The production topology lives in docker-compose.prod.yml.
+# =============================================================================
+
+name: medpay-ledger-dev
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16. Flyway V1–V6 runs against this on backend startup, including
+  # V5 (create the medpay_app role) and V6 (revoke UPDATE/DELETE on
+  # ledger_journals — ADR-004, FR-015).
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: medpay-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-medpay}
+      POSTGRES_USER: ${POSTGRES_USER:-medpay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medpay}
+      TZ: UTC
+    ports:
+      # Exposed locally for psql and IDE database tooling. Never exposed in prod.
+      - "5432:5432"
+    volumes:
+      - medpay-db-data:/var/lib/postgresql/data
+    healthcheck:
+      # pg_isready, not a TCP probe: the port opens before init scripts finish,
+      # and Flyway against a half-initialised server fails the backend boot.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-medpay} -d ${POSTGRES_DB:-medpay}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    networks: [medpay-net]
+
+  # ---------------------------------------------------------------------------
+  # Spring Boot 3.3 / Java 21. Built from backend/Dockerfile (multi-stage,
+  # non-root runtime user). Not published to the host — reachable only through
+  # the frontend's /api/v1 proxy, matching the production topology (ADR-006).
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medpay-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-medpay}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-medpay}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-medpay}
+      MEDPAY_JWT_SECRET: ${MEDPAY_JWT_SECRET}
+      MEDPAY_JWT_TTL_SECONDS: ${MEDPAY_JWT_TTL_SECONDS:-3600}
+      MEDPAY_CORS_ALLOWED_ORIGINS: ${MEDPAY_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      TZ: UTC
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    restart: unless-stopped
+    networks: [medpay-net]
+
+  # ---------------------------------------------------------------------------
+  # Vite production build served by Nginx, which also reverse-proxies /api/v1 to
+  # backend:8080. Same image and same nginx.conf as production, so the local
+  # stack exercises the real request path rather than a dev-only proxy.
+  #
+  # For hot-reload work run `npm run dev` in ./frontend instead; that path uses
+  # Vite's own proxy and is why MEDPAY_CORS_ALLOWED_ORIGINS exists.
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medpay-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost/healthz || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks: [medpay-net]
+
+volumes:
+  medpay-db-data:
+
+networks:
+  medpay-net:
+    driver: bridge

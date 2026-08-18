@@ -1,0 +1,88 @@
+# =============================================================================
+# MedPay Ledger — production stack (Azure App Service, Linux multi-container)
+#
+# Images are pulled from Azure Container Registry by tag; nothing is built here.
+# The deploy workflow renders ${IMAGE_TAG} and ${ACR_LOGIN_SERVER} with
+# `envsubst` before calling:
+#
+#   az webapp config container set \
+#     --multicontainer-config-type compose \
+#     --multicontainer-config-file docker-compose.rendered.yml
+#
+# The `db` service below is for a self-hosted deployment only. On App Service it
+# is REMOVED and SPRING_DATASOURCE_URL points at Azure Database for PostgreSQL
+# Flexible Server with ?sslmode=require (NFR-003).
+# =============================================================================
+
+name: medpay-ledger
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: UTC
+    volumes:
+      - medpay-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks: [medpay-net]
+
+  backend:
+    image: ${ACR_LOGIN_SERVER}/medpay-backend:${IMAGE_TAG}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      # Key Vault reference, resolved by the App Service managed identity
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      MEDPAY_JWT_SECRET: ${MEDPAY_JWT_SECRET}
+      MEDPAY_JWT_TTL_SECONDS: ${MEDPAY_JWT_TTL_SECONDS}
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
+      TZ: UTC
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks: [medpay-net]
+
+  # The only publicly addressable container. Serves the SPA and proxies
+  # /api/v1 -> http://backend:8080. TLS terminates at App Service, so this
+  # listens on plain :80 inside the plan. Single point of failure by design
+  # (NFR-018) — the trade taken in ADR-006 to eliminate CORS.
+  frontend:
+    image: ${ACR_LOGIN_SERVER}/medpay-frontend:${IMAGE_TAG}
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost/healthz || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks: [medpay-net]
+
+volumes:
+  medpay-db-data:
+
+networks:
+  medpay-net:
+    driver: bridge

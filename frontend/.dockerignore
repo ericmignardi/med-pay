@@ -1,0 +1,18 @@
+# Reinstalled inside the image by `npm ci` — copying the host's tree would drag
+# in platform-specific binaries built for Windows.
+node_modules/
+dist/
+
+.git/
+.gitignore
+.idea/
+*.log
+npm-debug.log*
+
+.env
+.env.*
+
+# Playwright output (Phase 9)
+e2e/
+playwright-report/
+test-results/

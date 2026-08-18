@@ -1,0 +1,16 @@
+# Build output — the image builds its own; copying the host's invalidates the
+# cache on every local `mvn package` and can smuggle a stale jar into the image.
+target/
+
+# IDE and VCS
+.idea/
+*.iml
+.git/
+.gitignore
+.gitattributes
+
+# Docs and local env — never needed inside the build context
+HELP.md
+*.md
+.env
+.env.*

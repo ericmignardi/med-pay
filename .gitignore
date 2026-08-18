@@ -1,0 +1,65 @@
+# =============================================================================
+# MedPay Ledger
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Secrets. .env holds a real JWT signing key and the database password; only the
+# placeholder template is tracked (NFR-007). The gitleaks hook in
+# .pre-commit-config.yaml is the backstop for anything this misses.
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------------------------------------------------------
+# Backend — Maven
+# -----------------------------------------------------------------------------
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties.bak
+*.jar.original
+
+# -----------------------------------------------------------------------------
+# Frontend — Node
+# -----------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# Playwright (Phase 9)
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# -----------------------------------------------------------------------------
+# Coverage
+# -----------------------------------------------------------------------------
+coverage/
+jacoco.exec
+*.exec
+
+# -----------------------------------------------------------------------------
+# IDE and OS
+# -----------------------------------------------------------------------------
+.idea/
+*.iml
+*.iws
+.vscode/
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -----------------------------------------------------------------------------
+# Deploy artefacts
+# -----------------------------------------------------------------------------
+# Rendered by envsubst in the deploy workflow (Phase 10); never committed.
+docker-compose.rendered.yml

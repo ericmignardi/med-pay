@@ -1,0 +1,66 @@
+# =============================================================================
+# MedPay Ledger — base configuration
+#
+# Every value here is overridden by the matching environment variable under
+# docker compose (Spring's relaxed binding maps SPRING_DATASOURCE_URL onto
+# spring.datasource.url and so on). The defaults below describe the local
+# workstation case — Postgres on localhost:5432, launched from an IDE run
+# configuration or `./mvnw spring-boot:run` — because a bare ${PLACEHOLDER}
+# with no default makes the context fail to start outside a container.
+#
+# Profile-specific overrides live in application-{dev,demo,prod}.yml.
+# =============================================================================
+
+spring:
+  application:
+    name: medpay-ledger
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+    group:
+      # `demo` is `dev` plus seeded sample data (Phase 1's DemoDataSeeder), so it
+      # inherits dev's beans rather than redeclaring them. Keeps the @Profile
+      # annotations on CorsConfig and friends to a single value.
+      demo: dev
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/medpay}
+    username: ${SPRING_DATASOURCE_USERNAME:medpay}
+    password: ${SPRING_DATASOURCE_PASSWORD:medpay}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # `validate` in every profile including tests — PLAN.md Phase 1. A stray
+      # `update` silently masks entity/schema drift and defeats the migrations.
+      ddl-auto: validate
+    # Off everywhere: an open session in the view tier hides N+1s behind lazy
+    # loads that only fire during serialisation.
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    # V1–V6 land in Phase 1. Until then the schema history table is created and
+    # Flyway logs "No migrations found", which is expected at Phase 0.
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Health only. The container healthcheck and the Nginx /actuator/health
+        # proxy are the sole consumers; nothing else is worth exposing.
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  jwt:
+    # Deliberately no default. JwtTokenProvider (Phase 2) fails fast on a key
+    # under 32 bytes, and a fallback signing key committed to the repository
+    # would be exactly the leak NFR-007 exists to prevent. Set it in the IDE run
+    # configuration for local runs; compose reads it from .env.
+    secret: ${MEDPAY_JWT_SECRET}
+    ttl-seconds: ${MEDPAY_JWT_TTL_SECONDS:3600}
