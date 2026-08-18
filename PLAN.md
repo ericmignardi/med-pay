@@ -184,6 +184,17 @@ Closes the backend. The API contract is frozen at this phase's exit.
 | `ConcurrencyIT` — double-submit, concurrent approval, concurrent provider posts | `backend/src/test/` |
 | JaCoCo gate wired into `mvn verify` | `backend/pom.xml` |
 
+> **Carried from Phase 0.** The JaCoCo plugin, its 80%/70% BUNDLE rule and its
+> excludes are already in `backend/pom.xml`, but the gate is non-blocking:
+> `<jacoco.haltOnFailure>` is `false`. At Phase 0 there is no production code to
+> measure, so an enforcing gate fails `mvn verify` on an empty tree and would
+> block every phase in between. The report is generated on every run regardless,
+> so the ratio stays visible as coverage grows.
+>
+> **This phase flips that property to `true`** — that is the whole of "wired into
+> `mvn verify`". Do it before the exit criterion below is assessed, or the
+> criterion passes vacuously.
+
 **Watch for.** `claimUnpublishedBatch` is the **only** sanctioned native query outside migrations, because `SKIP LOCKED` has no JPQL form. Confirm no PHI-adjacent value reaches any appender — check the error path too, not just the happy path.
 
 **Exit criterion.** Coverage gate passes at 80% line / 70% branch. `ConcurrencyIT` proves a double-submit yields one claim and one journal group, and that two concurrent approvals yield one `PAID` and one `409`. Outbox rows drain after a simulated dispatcher restart. **API contract frozen.**
