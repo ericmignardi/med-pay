@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination extracted
 
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:26-jre-alpine AS runtime
 
 WORKDIR /app
 
