@@ -4,11 +4,13 @@ import com.medpay.ledger.dto.ClaimResponse;
 import com.medpay.ledger.dto.ClaimSubmissionRequest;
 import com.medpay.ledger.dto.ClaimSummaryResponse;
 import com.medpay.ledger.dto.PageResponse;
+import com.medpay.ledger.dto.ReversalRequest;
 import com.medpay.ledger.exception.MissingIdempotencyKeyException;
 import com.medpay.ledger.model.ClaimStatus;
 import com.medpay.ledger.security.AuthenticatedUser;
 import com.medpay.ledger.service.ClaimQueryService;
 import com.medpay.ledger.service.ClaimSubmissionService;
+import com.medpay.ledger.service.ReversalService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,11 +34,14 @@ public class ClaimController {
 
     private final ClaimSubmissionService submissionService;
     private final ClaimQueryService queryService;
+    private final ReversalService reversalService;
 
     public ClaimController(ClaimSubmissionService submissionService,
-                           ClaimQueryService queryService) {
+                           ClaimQueryService queryService,
+                           ReversalService reversalService) {
         this.submissionService = submissionService;
         this.queryService = queryService;
+        this.reversalService = reversalService;
     }
 
     @PostMapping
@@ -75,6 +80,16 @@ public class ClaimController {
             @AuthenticationPrincipal AuthenticatedUser principal) {
 
         return ResponseEntity.ok(queryService.findOwn(principal, claimUuid));
+    }
+
+    @PostMapping("/{claimUuid}/reversals")
+    @PreAuthorize("hasRole('MEDICAL_REVIEWER')")
+    public ResponseEntity<ClaimResponse> reverse(
+            @PathVariable UUID claimUuid,
+            @Valid @RequestBody ReversalRequest request,
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+
+        return ResponseEntity.ok(reversalService.reverse(claimUuid, request, principal));
     }
 
     private static UUID parseIdempotencyKey(String raw) {

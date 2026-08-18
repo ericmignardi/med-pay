@@ -134,6 +134,16 @@ public class GlobalExceptionHandler {
                                 "fingerprint", ex.getFingerprint())));
     }
 
+    @ExceptionHandler(SelfApprovalException.class)
+    public ResponseEntity<ErrorResponse> handleSelfApproval(SelfApprovalException ex,
+                                                            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, ErrorCode.SELF_APPROVAL_FORBIDDEN, ex.getMessage(),
+                        path(request),
+                        Map.of("claimUuid", ex.getClaimUuid().toString(),
+                                "submittedByUserUuid", ex.getUserUuid().toString())));
+    }
+
     @ExceptionHandler(IllegalStateTransitionException.class)
     public ResponseEntity<ErrorResponse> handleIllegalTransition(IllegalStateTransitionException ex,
                                                                  HttpServletRequest request) {

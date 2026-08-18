@@ -50,4 +50,10 @@ public class OutboxService {
     public OutboxEvent record(Claim claim, OutboxEventType type) {
         return record(claim, type, Map.of());
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public OutboxEvent recordIndependently(Claim claim, OutboxEventType type,
+                                           Map<String, Object> attributes) {
+        return record(claim, type, attributes);
+    }
 }
