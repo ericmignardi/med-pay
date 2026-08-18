@@ -12,7 +12,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,12 +21,17 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Persistence-side user record. Deliberately <em>not</em> a Spring Security
+ * {@code UserDetails}: the authenticated principal is {@link
+ * com.medpay.ledger.security.AuthenticatedUser}, which is built from validated
+ * JWT claims and never from a database read (FR-004).
+ */
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class User {
 
     @Id

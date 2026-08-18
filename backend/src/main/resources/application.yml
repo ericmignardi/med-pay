@@ -23,6 +23,25 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+  jackson:
+    # The envelope in §5.6 declares fieldErrors and details as explicit nulls, so
+    # absent values must serialize rather than be dropped.
+    default-property-inclusion: always
+    # Money crosses the wire as a decimal string, never a JSON number (§5.2).
+    # That is enforced per-field by @JsonFormat(shape = STRING) on the DTO
+    # records; Jackson 3 has no mapper-wide switch that produces a string.
+
+  mvc:
+    # The custom envelope in §5.6 is used instead of RFC 7807, for a client
+    # contract that does not shift with the Spring version (FR-026).
+    problemdetails:
+      enabled: false
+
+server:
+  error:
+    whitelabel:
+      enabled: false
+
 management:
   endpoints:
     web:
