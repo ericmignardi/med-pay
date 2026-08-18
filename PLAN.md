@@ -243,7 +243,19 @@ Begins only after the contract is frozen, so the TypeScript interfaces in PRD §
 
 **Watch for.** Never parse a money field with `Number()` or `parseFloat` — the ESLint rule from Phase 0 should catch it, but review for it explicitly. The client-side line-sum check is a convenience that prevents the round trip; the server check stays authoritative and must still be exercised by a test.
 
-**Exit criterion.** All ten routes render with correct empty, loading, and error states. `tsc --noEmit` and lint are clean. A processor navigating to `/review` lands on `/403`. Money renders identically to the API's decimal strings at two decimal places, with no float artifacts.
+**Exit criterion.** All ten routes render with correct empty, loading, and error states. `tsc --noEmit` and lint are clean. A processor navigating to `/review` lands on `/403`. Money renders identically to the API decimal strings at two decimal places, with no float artifacts.
+
+**Done.** `tsc --noEmit`, `eslint .` and `vite build` all clean on the first pass; the
+container serves the SPA and the deep link `/claims` returns 200 through the Nginx
+fallback. Route rendering and the `/403` redirect are verified by Phase 9 rather than
+by hand.
+
+**One documented deviation.** The plan called for `Intl.NumberFormat` rendering.
+`Intl.NumberFormat.prototype.format` takes a `number` in the TypeScript DOM lib, and
+money columns are `NUMERIC(19,4)` — a fifteen-digit integer part exceeds
+`Number.MAX_SAFE_INTEGER`, so routing through `Intl` would silently round exactly the
+largest amounts. `lib/money.ts` groups digits by string manipulation instead; output is
+identical to `en-CA` currency formatting and nothing is ever a `number`.
 
 **Covers:** FR-005, FR-027, FR-028, FR-029, NFR-014, NFR-015, NFR-017.
 
