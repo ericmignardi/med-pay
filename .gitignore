@@ -63,3 +63,9 @@ desktop.ini
 # -----------------------------------------------------------------------------
 # Rendered by envsubst in the deploy workflow (Phase 10); never committed.
 docker-compose.rendered.yml
+
+# Playwright
+/frontend/test-results/
+/frontend/playwright-report/
+/frontend/blob-report/
+/frontend/.playwright/

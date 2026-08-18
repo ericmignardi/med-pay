@@ -276,6 +276,22 @@ identical to `en-CA` currency formatting and nothing is ever a `number`.
 
 **Exit criterion.** All five specs green against `docker compose up` in the `demo` profile. The cross-role spec asserts exactly two journal lines, correct directions and account types, and a group balance of `0.00`.
 
+**Done.** 23 specs green across the five files. Two defects surfaced, both invisible to
+every check made before this phase:
+
+1. **The SPA could not sign in through Nginx at all.** `CorsConfig` is dev-profile-only
+   and allow-listed `http://localhost:5173` alone, but the demo stack serves the SPA from
+   `http://localhost:8080`. Browsers send an `Origin` header on POST even same-origin, so
+   Spring rejected every login with `403` before it reached the controller. `curl` sends
+   no `Origin`, which is exactly why the manual smoke tests all passed. Fixed in
+   `application-dev.yml`, `docker-compose.yml`, `.env` and `.env.example`.
+2. **The demo profile logged PHI.** `demo` groups into `dev`, which sets
+   `org.hibernate.orm.jdbc.bind: TRACE`. Bound parameters reach the appender as bare
+   values, and while `member_reference` is masked by the `MBR-` pattern,
+   `diagnosis_code` and `service_code` arrive with no `key=` prefix for the converter to
+   match — a straight FR-030 violation in the one profile the demo actually runs.
+   `application-demo.yml` now turns the tracing off.
+
 **Covers:** FR-005, FR-027, FR-028 (verification).
 
 ---
