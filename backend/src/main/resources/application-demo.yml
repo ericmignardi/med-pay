@@ -1,13 +1,3 @@
 app:
   demo:
     seed-enabled: true
-
-logging:
-  level:
-    # The demo profile groups into dev, which turns on SQL bind tracing. That logs every
-    # bound parameter, and diagnosis_code and service_code reach the appender as bare
-    # values with no key= prefix for PhiMaskingConverter to match. FR-030 says no
-    # PHI-adjacent value reaches any appender by any path, so the tracing goes off here.
-    org.hibernate.SQL: WARN
-    org.hibernate.orm.jdbc.bind: WARN
-    org.hibernate.type.descriptor.sql: WARN

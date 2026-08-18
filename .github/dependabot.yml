@@ -1,0 +1,49 @@
+version: 2
+
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, backend]
+    groups:
+      # Spring Boot's modules move together; separate PRs for each would conflict
+      # with one another and none would pass on its own.
+      spring:
+        patterns: ['org.springframework*']
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: [dependencies, frontend]
+    groups:
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      tooling:
+        patterns: ['eslint*', 'typescript*', '@typescript-eslint/*', 'vite', '@vitejs/*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, docker]
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, docker]

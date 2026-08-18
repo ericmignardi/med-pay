@@ -285,12 +285,15 @@ every check made before this phase:
    Spring rejected every login with `403` before it reached the controller. `curl` sends
    no `Origin`, which is exactly why the manual smoke tests all passed. Fixed in
    `application-dev.yml`, `docker-compose.yml`, `.env` and `.env.example`.
-2. **The demo profile logged PHI.** `demo` groups into `dev`, which sets
-   `org.hibernate.orm.jdbc.bind: TRACE`. Bound parameters reach the appender as bare
-   values, and while `member_reference` is masked by the `MBR-` pattern,
-   `diagnosis_code` and `service_code` arrive with no `key=` prefix for the converter to
-   match — a straight FR-030 violation in the one profile the demo actually runs.
-   `application-demo.yml` now turns the tracing off.
+2. **The demo environment logged PHI in cleartext.** `demo` groups into `dev`, which
+   set `org.hibernate.orm.jdbc.bind: TRACE`. That emits one line per bound parameter as
+   a bare value — `binding parameter (4:VARCHAR) <- [E1165]` — with no key for
+   `PhiMaskingConverter` to anchor on, so `diagnosis_code` and `service_code` reached the
+   appender unmasked. `member_reference` survived only because the `MBR-` pattern matches
+   it standalone. Confirmed against the running stack: 13 PHI-bearing log lines before,
+   0 after. Fixed in `application-dev.yml` — overriding it in `application-demo.yml` is a
+   no-op, because profile-group members are appended after the group name, so `dev`
+   resolves last and wins.
 
 **Covers:** FR-005, FR-027, FR-028 (verification).
 
@@ -314,6 +317,18 @@ every check made before this phase:
 **Watch for.** Verify no secret appears in a build argument, an image layer, or a workflow log — Key Vault references resolve at container start, not at build. Confirm `sslmode=require` is present in the deployed `SPRING_DATASOURCE_URL`, since NFR-003 has no automated test and is a declared gap.
 
 **Exit criterion.** A push to `main` builds, tests, pushes, deploys, and passes the health poll with no manual step. The public URL serves the SPA; the demo credentials authenticate; the cross-role flow completes against the deployed environment. Redeploying a prior commit SHA rolls back cleanly.
+
+> **Status: split.** Phase 10a is **done** — `.github/workflows/deploy.yml` and
+> `.github/dependabot.yml` are committed, and the four jobs that need no cloud account
+> (gitleaks, backend `mvn verify` with the coverage gate, frontend typecheck/lint/build,
+> and the Playwright suite against a compose stack) run on every push and pull request.
+>
+> Phase 10b is **deferred** — there is no Azure subscription yet. The `build-push` and
+> `deploy` jobs are written and reviewed but gated on `vars.AZURE_ENABLED == 'true'`, so
+> the workflow is green today and enabling deployment later is a one-flag change rather
+> than a new authoring pass. **The ordered provisioning steps are in the "Phase 10 —
+> DEFERRED" section at the end of this file.** The exit criterion above cannot be
+> assessed until those are done.
 
 **Covers:** NFR-007, NFR-018, NFR-019.
 

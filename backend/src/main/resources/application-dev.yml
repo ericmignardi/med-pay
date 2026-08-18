@@ -1,5 +1,7 @@
 spring:
   jpa:
+    # Statements only, and they are parameterised - the values are bound separately
+    # and are not part of what this logs.
     show-sql: true
     properties:
       hibernate:
@@ -15,4 +17,16 @@ app:
 logging:
   level:
     com.medpay.ledger: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    # Bind tracing is off, and stays off, in every profile.
+    #
+    # It emits one line per bound parameter as a bare value - `binding parameter
+    # (4:VARCHAR) <- [E1165]` - with no key for PhiMaskingConverter to anchor on, so
+    # diagnosis_code and service_code reach the appender in cleartext. member_reference
+    # survives only because the MBR- pattern matches it on its own.
+    #
+    # FR-030 states the rule without a profile carve-out, and `demo` groups into `dev`,
+    # so this file is what the demo environment actually runs. Setting it in
+    # application-demo.yml does not work: group members are appended after the group
+    # name, so dev is resolved last and wins.
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.type.descriptor.sql: WARN
