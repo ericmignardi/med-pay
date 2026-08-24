@@ -174,7 +174,7 @@ jobs:
         run: echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
       - name: Azure login (OIDC, no stored client secret)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -214,7 +214,7 @@ jobs:
       url: ${{ vars.AZURE_APP_URL }}
     steps:
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
